@@ -1,6 +1,4 @@
-
-```markdown
-# ChordForge 🎸
+# ChordForge 🎸 v0.1.4
 
 A lightweight, self-hosted web application for string musicians. 
 
@@ -8,9 +6,14 @@ ChordForge is a dynamic song library and chord visualizer designed to run on a l
 
 It is designed to be accessible from any device on your Wi-Fi, making it the perfect companion to pull up on a phone or tablet while you are holding your instrument.
 
+## ⚠️ A Note on File Formats (No PDFs)
+**ChordForge requires standard `.txt` files for tab uploads.** While the backend is equipped with `pypdf` to prevent crashes on accidental uploads, **PDFs are not supported for chord sheets**. PDF generators (like those on Ultimate Guitar) use absolute coordinates for every single character rather than actual physical spaces. Extracting text from a PDF completely destroys the spatial relationship between the chords and the lyrics. 
+
+For perfect ChordPro auto-conversion, always copy-paste your tabs into a `.txt` file!
+
 ## ✨ Features
 
-* **Intelligent Auto-Converter:** Drop in messy text files, Ultimate Guitar tabs, or raw PDF extractions. The backend engine automatically scrubs the text, detects chord lines, and perfectly interleaves them into an inline ChordPro-style format.
+* **Intelligent Auto-Converter:** Drop in messy `.txt` files or Ultimate Guitar copy-pastes. The backend engine automatically scrubs the text, detects chord lines, and perfectly interleaves them into an inline ChordPro-style format.
 * **Dynamic Image Generation:** No more hunting for low-res JPEG chord charts. The app uses Python (Pillow) to draw mathematically perfect, transparent PNG chord grids on the fly. 
 * **Multi-Instrument Support:** Instantly toggle the active tuning of any song. The app currently supports:
     * Standard Ukulele (gCEA)
@@ -36,7 +39,7 @@ source venv/bin/activate
 ```
 3. Install the dependencies:
 ```bash
-pip install Flask Pillow
+pip install Flask Pillow pypdf
 ```
 4. Generate the initial chord libraries:
 ```bash
@@ -78,6 +81,4 @@ To add a new chord to the library:
 │   ├── dgbe_chords/
 │   └── banjo_chords/
 └── song_sheets/            # Uploaded text and ChordPro files
-```
-
 ```
