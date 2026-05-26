@@ -1,10 +1,7 @@
-#!/home/shane/Documents/ukulele_chords/chords_conversion_env/bin/python
-# Version: 0.1.0
+# Version: 0.1.3
 # Changelog:
-# - Imported PyPDF2 to handle native .pdf uploads
-# - Added conditional logic to view_song() to distinguish between inline lyrics and standalone chord lines
-# - Updated convert_to_chordpro() to preserve spacing on standalone chord lines
-# - Automatically saves processed PDFs as normalized .txt files
+# - Restored the advanced convert_to_chordpro() engine to interleave chords into lyrics.
+# - Maintained inline span HTML replacement for standard ChordPro rendering.
 
 import os
 import re
@@ -32,7 +29,6 @@ def parse_chord_to_filename(chord_name):
     return f"{chord_name}-.png"
 
 def is_chord_line(line):
-    """Detects if a line consists entirely of guitar/ukulele chords."""
     cleaned = line.strip()
     if not cleaned: return False
     
@@ -68,6 +64,7 @@ def convert_to_chordpro(text):
             continue
 
         if is_chord_line(line):
+            # If the next line is lyrics, calculate spacing and interleave
             if i + 1 < len(lines) and lines[i+1].strip() and not is_chord_line(lines[i+1]) and not lines[i+1].startswith('['):
                 chord_line = line
                 lyric_line = lines[i+1]
@@ -87,7 +84,7 @@ def convert_to_chordpro(text):
                 i += 2 
                 continue
             else:
-                # Wrap standalone chords in brackets but preserve their original spacing!
+                # Wrap standalone chords in brackets but preserve their original spacing
                 spaced_chords = re.sub(r'(\S+)', r'[\1]', line)
                 out_lines.append(spaced_chords)
                 i += 1
@@ -145,11 +142,11 @@ def view_song(filename):
             if clean_c: 
                 unique_chords.add(clean_c)
 
-        # Rendering Logic: Differentiate between standalone intro chords and inline lyrics
         if re.match(r'^(\s*\[[^\]]+\]\s*)+$', line):
             html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label-standalone">\1</span>', line)
             html_lines.append(f'<div class="lyric-line chord-only-line">{html_line}</div>')
         else:
+            # Inline ChordPro replacement
             html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label-inline" data-chord="\1"></span>', line)
             html_lines.append(f'<div class="lyric-line">{html_line}</div>')
 
@@ -187,11 +184,9 @@ def upload_file():
     
     raw_text = ""
     
-    # Process native .txt files
     if file.filename.endswith('.txt'):
         raw_text = file.read().decode('utf-8', errors='ignore')
         
-    # Rip text from .pdf files
     elif file.filename.endswith('.pdf'):
         try:
             reader = PdfReader(file)
@@ -202,10 +197,8 @@ def upload_file():
     else:
         return redirect(request.url)
 
-    # Intercept the raw text and force it into ChordPro!
     chordpro_text = convert_to_chordpro(raw_text)
     
-    # Always save as .txt, even if it came in as a PDF
     safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', file.filename.rsplit('.', 1)[0]) + '.txt'
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
     
