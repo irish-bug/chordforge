@@ -1,10 +1,15 @@
-#Update 0.0.3
-#add a new function called convert_to_chordpro to allow upload of tab site style text and pdfs. 
-
 #!/home/shane/Documents/ukulele_chords/chords_conversion_env/bin/python
+# Version: 0.1.0
+# Changelog:
+# - Imported PyPDF2 to handle native .pdf uploads
+# - Added conditional logic to view_song() to distinguish between inline lyrics and standalone chord lines
+# - Updated convert_to_chordpro() to preserve spacing on standalone chord lines
+# - Automatically saves processed PDFs as normalized .txt files
+
 import os
 import re
 from flask import Flask, render_template, request, redirect, url_for
+from pypdf import PdfReader
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'song_sheets'
@@ -31,17 +36,15 @@ def is_chord_line(line):
     cleaned = line.strip()
     if not cleaned: return False
     
-    # Strip common non-chord artifacts like (play loud) or (x3)
     cleaned = re.sub(r'\(.*?\)', '', cleaned).strip()
     tokens = cleaned.split()
     if not tokens: return False
 
-    # Standard music theory regex for chords
     chord_pattern = re.compile(r'^[A-G][b#]?(m|min|maj|M|dim|aug|sus)?\d*(/[A-G][b#]?)?$', re.IGNORECASE)
     
     for token in tokens:
         if not chord_pattern.match(token):
-            return False # If any word isn't a chord, it's probably lyrics
+            return False 
     return True
 
 def convert_to_chordpro(text):
@@ -53,12 +56,10 @@ def convert_to_chordpro(text):
     while i < len(lines):
         line = lines[i]
         
-        # Clean up page numbers and junk from PDF rips
         if "Page " in line and "/" in line:
             i += 1
             continue
 
-        # Catch Meta Tags
         meta_match = re.match(r'^(Tuning|Key|Capo|Difficulty):\s*(.+)', line, re.IGNORECASE)
         if meta_match:
             key, val = meta_match.groups()
@@ -66,38 +67,32 @@ def convert_to_chordpro(text):
             i += 1
             continue
 
-        # Check if current line is a chord line
         if is_chord_line(line):
-            # Check if the next line is lyrics
             if i + 1 < len(lines) and lines[i+1].strip() and not is_chord_line(lines[i+1]) and not lines[i+1].startswith('['):
                 chord_line = line
                 lyric_line = lines[i+1]
 
-                # Find the exact character index of each chord
                 chords = [(match.start(), match.group()) for match in re.finditer(r'\S+', chord_line)]
                 lyric_chars = list(lyric_line)
 
-                # Insert from right-to-left so we don't shift the string indices
                 for pos, chord in reversed(chords):
                     chord_str = f"[{chord}]"
                     if pos >= len(lyric_chars):
-                        # If the chord floats past the end of the lyric line, pad with spaces
                         lyric_chars.extend([' '] * (pos - len(lyric_chars)))
                         lyric_chars.append(chord_str)
                     else:
                         lyric_chars.insert(pos, chord_str)
 
                 out_lines.append("".join(lyric_chars))
-                i += 2 # Skip the lyric line since we just merged it
+                i += 2 
                 continue
             else:
-                # If it's a chord line but no lyrics follow (like an Intro), just bracket them
-                chords = [f"[{match.group()}]" for match in re.finditer(r'\S+', line)]
-                out_lines.append(" ".join(chords))
+                # Wrap standalone chords in brackets but preserve their original spacing!
+                spaced_chords = re.sub(r'(\S+)', r'[\1]', line)
+                out_lines.append(spaced_chords)
                 i += 1
                 continue
 
-        # Normal line pass-through
         out_lines.append(line)
         i += 1
 
@@ -150,8 +145,13 @@ def view_song(filename):
             if clean_c: 
                 unique_chords.add(clean_c)
 
-        html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label">\1</span>', line)
-        html_lines.append(f'<div class="lyric-line">{html_line}</div>')
+        # Rendering Logic: Differentiate between standalone intro chords and inline lyrics
+        if re.match(r'^(\s*\[[^\]]+\]\s*)+$', line):
+            html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label-standalone">\1</span>', line)
+            html_lines.append(f'<div class="lyric-line chord-only-line">{html_line}</div>')
+        else:
+            html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label-inline" data-chord="\1"></span>', line)
+            html_lines.append(f'<div class="lyric-line">{html_line}</div>')
 
     if tuning == 'baritone':
         tuning_folder = "dgbe_chords"
@@ -185,22 +185,34 @@ def upload_file():
     if file.filename == '':
         return redirect(request.url)
     
-    if file and file.filename.endswith('.txt'):
+    raw_text = ""
+    
+    # Process native .txt files
+    if file.filename.endswith('.txt'):
         raw_text = file.read().decode('utf-8', errors='ignore')
         
-        # Intercept the raw text and force it into ChordPro!
-        chordpro_text = convert_to_chordpro(raw_text)
+    # Rip text from .pdf files
+    elif file.filename.endswith('.pdf'):
+        try:
+            reader = PdfReader(file)
+            raw_text = "\n".join(page.extract_text() for page in reader.pages if page.extract_text())
+        except Exception as e:
+            print(f"Failed to read PDF: {e}")
+            return redirect(request.url)
+    else:
+        return redirect(request.url)
+
+    # Intercept the raw text and force it into ChordPro!
+    chordpro_text = convert_to_chordpro(raw_text)
+    
+    # Always save as .txt, even if it came in as a PDF
+    safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', file.filename.rsplit('.', 1)[0]) + '.txt'
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+    
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(chordpro_text)
         
-        safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
-        
-        # Save the fully converted file to the hard drive
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(chordpro_text)
-            
-        return redirect(url_for('view_song', filename=safe_name))
-        
-    return redirect(url_for('index'))
+    return redirect(url_for('view_song', filename=safe_name))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
