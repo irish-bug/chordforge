@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - ChordForge</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a24;
+            color: #e0e0e0;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #282834;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+            position: sticky;
+            top: 0;
+            background-color: #1a1a24;
+            z-index: 100;
+        }
+        .back-btn {
+            color: #4ecca3;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        select {
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #282834;
+            color: white;
+            border: 1px solid #8a2be2;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        
+        /* --- ChordPro Rendering Magic --- */
+        .song-content {
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 1.1em;
+            line-height: 4.5em; /* Breathing room for the SVGs */
+        }
+        .chord-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .chord-diagram {
+            position: absolute;
+            bottom: 0px;       
+            left: 0;
+            width: auto;
+            height: 90px; /* Scale the SVG size here */
+            z-index: 10;
+            background-color: #ffffff; /* Gives the black SVG a white background */
+            border-radius: 4px;
+            padding: 2px;
+            border: 1px solid #333;
+        }
+        .chord-wrapper .chord-label {
+            display: none; /* Hide the text if SVG exists */
+        }
+        .chord-wrapper.missing {
+            position: relative;
+            top: -1.5em; 
+            color: #ff5555; 
+            font-weight: bold;
+        }
+        .chord-wrapper.missing .chord-label {
+            display: inline; 
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-btn">← Back to Library</a>
+        
+        <select onchange="window.location.href=this.value">
+            {% for key, name in instruments.items() %}
+                <option value="{{ url_for('view_song', filename=filename, instrument=key) }}" 
+                        {% if key == active_instrument %}selected{% endif %}>
+                    {{ name }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <h1>{{ title }}</h1>
+
+    <div class="song-content">{{ content | safe }}</div>
+
+</body>
+</html>

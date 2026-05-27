@@ -6,3 +6,19 @@
 /gcea_chords
 /generate_chords.py
 /pdf_converter.py
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+chords_env/
+venv/
+
+# macOS
+.DS_Store
+
+# App Data & Backups
+*.zip
+song_sheets/.old/
+
+# (Optional) Uncomment the next line if you want Git to ignore ALL song sheets
+# song_sheets/*.txt

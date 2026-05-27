@@ -2,21 +2,13 @@
 {tuning: standard}
 
 [Chorus]
-[C]                                        
-You are my sunshine, my only sunshine
-                                  [F]                               [C]
-You make me happy when skies are gray
-           [F]                                      [C]
-You'll never know, dear, how much I love you
-             [C]          [G7]               [C]
-Please don't take my sunshine away
+[C]You are my sunshine, my only sunshine
+You make me [F]happy when skies are [C]gray
+You'll never [F]know, dear, how much I [C]love you
+Please don't [C]take my [G7]sunshine a[C]way
 
 [Verse 1]
-[C]
-The other night, dear, as I lay sleeping
-                 [F]                         [C]
-I dreamt I held you in my arms
-           [F]                               [C]
-When I awoke, dear, I was mistaken
-      [C]         [G7]         [C]
-So I bowed my head and cried
+[C]The other night, dear, as I lay sleeping
+I dreamt I [F]held you in my [C]arms
+When I a[F]woke, dear, I was mis[C]taken
+So I [C]bowed my [G7]head and [C]cried

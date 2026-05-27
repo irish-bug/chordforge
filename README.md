@@ -1,84 +1,51 @@
-# ChordForge 🎸 v0.1.4
+# ChordForge 🎸
 
-A lightweight, self-hosted web application for string musicians. 
+**Version:** 0.2.0
 
-ChordForge is a dynamic song library and chord visualizer designed to run on a local network (like a Raspberry Pi 5). It allows you to upload raw text tabs from the internet and instantly view them in a clean, dark-mode interface with mathematically generated chord diagrams. 
+ChordForge is a lightweight, Flask-based local web application designed to parse standard ChordPro text files and instantly inject mathematically accurate, instrument-specific SVG chord diagrams directly above the lyrics. 
 
-It is designed to be accessible from any device on your Wi-Fi, making it the perfect companion to pull up on a phone or tablet while you are holding your instrument.
+Built to run seamlessly on a local network (like a Raspberry Pi) and scale beautifully on mobile screens.
 
-## ⚠️ A Note on File Formats (No PDFs)
-**ChordForge requires standard `.txt` files for tab uploads.** While the backend is equipped with `pypdf` to prevent crashes on accidental uploads, **PDFs are not supported for chord sheets**. PDF generators (like those on Ultimate Guitar) use absolute coordinates for every single character rather than actual physical spaces. Extracting text from a PDF completely destroys the spatial relationship between the chords and the lyrics. 
+## 🚀 Features
 
-For perfect ChordPro auto-conversion, always copy-paste your tabs into a `.txt` file!
+* **Multi-Instrument Engine:** Dynamically swap between standard Ukulele, Baritone Ukulele, 5-String Banjo, and Guitar voicings without altering the source text file.
+* **Vector Graphics:** Automatically generates and serves mathematically scaled, crisp `.svg` diagrams. No blurry rasters, no pixelation on large screens.
+* **Smart Parsing:** Wrap chords in brackets [Cm7] in your text file, and ChordForge maps them to the corresponding diagram on the fly.
+* **Graceful Fallbacks:** If an obscure chord isn't in the generated library yet, the app falls back to a highly visible text block so you never lose your place in the song.
+* **PDF Safety Net:** Accidentally uploaded a PDF? The backend quietly rips the raw text into a safe `.txt` file for you to format, preventing server crashes.
+* **Modular Library:** The chord_data/ architecture uses standard CAGED logic to map 144 movable chord shapes across multiple tunings.
 
-## ✨ Features
+## 🛠️ Installation
 
-* **Intelligent Auto-Converter:** Drop in messy `.txt` files or Ultimate Guitar copy-pastes. The backend engine automatically scrubs the text, detects chord lines, and perfectly interleaves them into an inline ChordPro-style format.
-* **Dynamic Image Generation:** No more hunting for low-res JPEG chord charts. The app uses Python (Pillow) to draw mathematically perfect, transparent PNG chord grids on the fly. 
-* **Multi-Instrument Support:** Instantly toggle the active tuning of any song. The app currently supports:
-    * Standard Ukulele (gCEA)
-    * Baritone Ukulele (DGBE)
-    * Banjo (Custom 4-string)
-* **Graceful Fallbacks:** If a song contains an obscure chord that isn't in your local dictionary, the UI elegantly handles it with a placeholder box rather than breaking the layout.
-* **Native Dark Mode:** A high-contrast, deep purple/navy UI designed to be easy on the eyes in a studio environment.
+1. Clone the repository
+2. Set up a virtual environment (e.g., `python3 -m venv chords_env` then activate it)
+3. Install dependencies via `pip install Flask pypdf` (Note: The heavy Pillow dependency was removed in v0.2.0!)
 
-## 🚀 Installation & Deployment
+## 🎵 Usage
 
-This application is built with Python and Flask. You can run it directly in a virtual environment or deploy it as a Docker container.
-
-### Option 1: Local Python Environment
-1. Clone this repository:
-```bash
-git clone [https://github.com/yourusername/chordforge.git](https://github.com/yourusername/chordforge.git)
-cd chordforge
-```
-2. Create and activate a virtual environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-3. Install the dependencies:
-```bash
-pip install Flask Pillow pypdf
-```
-4. Generate the initial chord libraries:
-```bash
-python app/generate_chords.py
-```
-5. Start the server:
-```bash
-python app.py
-```
-
-### Option 2: Docker (Recommended for Raspberry Pi / Always-On Servers)
-You can containerize the entire application so it runs silently in the background on your network.
-1. Build the image:
-```bash
-docker build -t chordforge .
-```
-2. Run the container on port 5000:
-```bash
-docker run -d -p 5000:5000 --name chord-server chordforge
-```
-
-## 🛠 Adding Custom Chords
-ChordForge does not rely on third-party APIs. You have complete control over the voicings. 
-To add a new chord to the library:
-1. Open `generate_chords.py`.
-2. Add your desired fingering to the dictionary using a fret array (e.g., `"Fsus2": [0, 0, 1, 3]`). `0` is an open string, `-1` or `x` is a muted string.
-3. Run the generator script again. The new transparent PNG will be instantly stamped out and available to the web server. 
+1. Start the server using `python app.py`
+2. Open a web browser on any device on your Wi-Fi network and navigate to your host's IP address (e.g., http://192.168.1.XX:5000)
+3. Upload a standard `.txt` file containing your lyrics and bracketed chords. Click the song in the library to open the viewer.
 
 ## 📁 Project Structure
 
-```text
-├── app.py                  # Main Flask web server and parsing engine
-├── generate_chords.py      # Python script to draw perfectly uniform chord PNGs
-├── Dockerfile              # Deployment instructions
-├── templates/
-│   └── index.html          # Main UI layout 
-├── static/                 # Generated chord images live here
-│   ├── gcea_chords/
-│   ├── dgbe_chords/
-│   └── banjo_chords/
-└── song_sheets/            # Uploaded text and ChordPro files
-```
+ChordForge/
+├── app.py                  # Main Flask backend and routing
+├── generate_chords.py      # Master SVG generation script
+├── chord_data/             # Modular Python files storing array data (c.py, d.py...)
+├── static/                 # Generated SVG files sorted by instrument
+│   ├── gcea_chords/        
+│   ├── dgbe_chords/        
+│   ├── banjo_chords/       
+│   └── guitar_chords/      
+├── templates/              
+│   ├── index.html          # Dashboard and Library view
+│   └── song.html           # Dedicated ChordPro rendering view
+└── song_sheets/            # Uploaded .txt files live here
+
+## 📝 Changelog (v0.2.0)
+* Split Frontend Routing: Separated the monolithic UI into a dedicated Library Dashboard and an isolated ChordPro Viewer.
+* Multi-Instrument Engine: Added URL query parameters to dynamically fetch instrument-specific chord dictionaries via a UI dropdown.
+* Inline SVG Injection: Replaced legacy raster image logic. Chords are now lightweight `.svg` vector graphics.
+* Modular Chord Dictionary: Transitioned from a single master file to a mathematically mapped architecture supporting 144 chords across 4 distinct tunings.
+* Automated Centering: Generator scripts now mathematically calculate grid widths based on string count to ensure perfect visual alignment.

@@ -1,0 +1,18 @@
+<svg width="250" height="200" xmlns="http://www.w3.org/2000/svg">
+<text x="125.0" y="50" font-family="sans-serif" font-size="24" font-weight="bold" text-anchor="middle">Edim</text>
+<line x1="50.0" y1="70" x2="200.0" y2="70" stroke="black" stroke-width="2"/>
+<line x1="50.0" y1="100" x2="200.0" y2="100" stroke="black" stroke-width="2"/>
+<line x1="50.0" y1="130" x2="200.0" y2="130" stroke="black" stroke-width="2"/>
+<line x1="50.0" y1="160" x2="200.0" y2="160" stroke="black" stroke-width="2"/>
+<line x1="50.0" y1="190" x2="200.0" y2="190" stroke="black" stroke-width="2"/>
+<line x1="50.0" y1="70" x2="50.0" y2="190" stroke="black" stroke-width="2"/>
+<line x1="80.0" y1="70" x2="80.0" y2="190" stroke="black" stroke-width="2"/>
+<circle cx="80.0" cy="85" r="9" fill="black"/>
+<line x1="110.0" y1="70" x2="110.0" y2="190" stroke="black" stroke-width="2"/>
+<circle cx="110.0" cy="115" r="9" fill="black"/>
+<line x1="140.0" y1="70" x2="140.0" y2="190" stroke="black" stroke-width="2"/>
+<line x1="170.0" y1="70" x2="170.0" y2="190" stroke="black" stroke-width="2"/>
+<text x="170.0" y="65" font-family="sans-serif" font-size="14" text-anchor="middle">x</text>
+<line x1="200.0" y1="70" x2="200.0" y2="190" stroke="black" stroke-width="2"/>
+<text x="200.0" y="65" font-family="sans-serif" font-size="14" text-anchor="middle">x</text>
+</svg>
