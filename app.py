@@ -1,9 +1,8 @@
 #!/home/shane/Documents/ukulele_chords/chords_conversion_env/bin/python
-# Version 1.7
+# Version 1.8
 # Changelog:
-# - Renamed 'standard' and 'baritone' tuning arguments to 'gcea' and 'dgbe'.
-# - Added tuning_display mapping for clear UI labels (e.g., "GCEA Ukulele").
-# - Added logic to parse the {strum: ...} ChordPro tag and pass it to the UI.
+# - Added rolodex grouping to view_chart: Chords are now grouped by their root note (A, B, C...) 
+#   before being passed to chart.html.
 
 import os
 import re
@@ -113,8 +112,19 @@ def view_chart(instrument):
     
     chord_files = [f for f in os.listdir(path) if f.endswith('.svg')]
     chord_files.sort()
+
+    # GROUP CHORDS BY FIRST LETTER (A, B, C, etc.)
+    grouped_chords = {}
+    for chord in chord_files:
+        root_letter = chord[0].upper()
+        if root_letter not in grouped_chords:
+            grouped_chords[root_letter] = []
+        grouped_chords[root_letter].append(chord)
+        
+    # Sort dictionary keys alphabetically to ensure correct order
+    grouped_chords = {k: grouped_chords[k] for k in sorted(grouped_chords)}
     
-    return render_template('chart.html', instrument=instrument, tuning_display=tuning_display, chords=chord_files, folder=folder)
+    return render_template('chart.html', instrument=instrument, tuning_display=tuning_display, grouped_chords=grouped_chords, folder=folder)
 
 @app.route('/song/<filename>')
 def view_song(filename):

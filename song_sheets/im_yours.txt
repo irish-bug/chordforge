@@ -2,6 +2,7 @@
 {artist: Jason Mraz}
 
 [Intro]
+{strum: D U X U  D U X U}
 [G] [D]
 
 [Verse 1]

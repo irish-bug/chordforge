@@ -4,9 +4,20 @@
     <meta charset="UTF-8">
     <title>{{ tuning_display }} Chords - Master Chart</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #151133; color: #e8e8e8; margin: 0; padding: 40px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #151133; color: #e8e8e8; margin: 0; padding: 0; }
         
-        .header-container { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #2a225e; padding-bottom: 20px; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
+        /* --- STICKY HEADER & NAVIGATION --- */
+        .header-wrapper {
+            position: sticky;
+            top: 0;
+            background: #151133;
+            z-index: 100;
+            padding: 20px 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            border-bottom: 2px solid #2a225e;
+        }
+
+        .header-container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
         h1 { color: #ffffff; margin: 0; }
         
         .nav-buttons { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -17,31 +28,78 @@
         .nav-buttons .home-btn { background: #f39c12; margin-right: 15px; border: 2px solid #f39c12; } 
         .nav-buttons .home-btn:hover { background: transparent; color: #f39c12; }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; }
-        .box { display: flex; flex-direction: column; align-items: center; }
+        /* --- THE ROLODEX (Jump Links) --- */
+        .rolodex {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .rolodex a {
+            background: #2a225e;
+            color: #f39c12;
+            padding: 5px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .rolodex a:hover { background: #4f0a59; color: #ffffff; }
+
+        /* --- CONTENT AREA --- */
+        .content { padding: 40px; max-width: 1400px; margin: 0 auto; }
         
+        /* scroll-margin-top ensures the header doesn't cover the title when jumping */
+        .note-section h2 { 
+            color: #9c8ae8; 
+            border-bottom: 1px solid #2a225e; 
+            padding-bottom: 10px; 
+            margin-top: 40px; 
+            scroll-margin-top: 180px; 
+        }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 20px; margin-bottom: 50px; }
+        .box { display: flex; flex-direction: column; align-items: center; }
         .box img { width: 100%; height: auto; aspect-ratio: 1 / 1; object-fit: contain; background: white; border-radius: 4px; padding: 2px; box-sizing: border-box; }
     </style>
 </head>
 <body>
-    <div class="header-container">
-        <h1>All {{ tuning_display }} Chords</h1>
-        
-        <div class="nav-buttons">
-            <a href="{{ url_for('index') }}" class="home-btn">← Back to Studio</a>
-            <a href="{{ url_for('view_chart', instrument='gcea') }}" class="{% if instrument == 'gcea' %}active{% endif %}">GCEA Ukulele</a>
-            <a href="{{ url_for('view_chart', instrument='dgbe') }}" class="{% if instrument == 'dgbe' %}active{% endif %}">DGBE Ukulele</a>
-            <a href="{{ url_for('view_chart', instrument='banjo') }}" class="{% if instrument == 'banjo' %}active{% endif %}">Banjo</a>
-            <a href="{{ url_for('view_chart', instrument='guitar') }}" class="{% if instrument == 'guitar' %}active{% endif %}">Guitar</a>
+
+    <div class="header-wrapper">
+        <div class="header-container">
+            <h1>All {{ tuning_display }} Chords</h1>
+            
+            <div class="nav-buttons">
+                <a href="{{ url_for('index') }}" class="home-btn">← Back to Studio</a>
+                <a href="{{ url_for('view_chart', instrument='gcea') }}" class="{% if instrument == 'gcea' %}active{% endif %}">GCEA Ukulele</a>
+                <a href="{{ url_for('view_chart', instrument='dgbe') }}" class="{% if instrument == 'dgbe' %}active{% endif %}">DGBE Ukulele</a>
+                <a href="{{ url_for('view_chart', instrument='banjo') }}" class="{% if instrument == 'banjo' %}active{% endif %}">Banjo</a>
+                <a href="{{ url_for('view_chart', instrument='guitar') }}" class="{% if instrument == 'guitar' %}active{% endif %}">Guitar</a>
+            </div>
+        </div>
+
+        <div class="rolodex">
+            {% for note in grouped_chords.keys() %}
+                <a href="#note-{{ note }}">{{ note }}</a>
+            {% endfor %}
         </div>
     </div>
 
-    <div class="grid">
-        {% for chord in chords %}
-            <div class="box">
-                <img src="{{ url_for('static', filename=folder + '/' + chord) }}" alt="{{ chord }}">
+    <div class="content">
+        {% for note, chords in grouped_chords.items() %}
+            <div class="note-section">
+                <h2 id="note-{{ note }}">{{ note }} Chords</h2>
+                <div class="grid">
+                    {% for chord in chords %}
+                        <div class="box">
+                            <img src="{{ url_for('static', filename=folder + '/' + chord) }}" alt="{{ chord }}">
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
         {% endfor %}
     </div>
+
 </body>
 </html>
