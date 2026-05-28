@@ -1,4 +1,10 @@
-# Version 1.2 reverting to previous
+#!/home/shane/Documents/ukulele_chords/chords_conversion_env/bin/python
+# Version 1.7
+# Changelog:
+# - Renamed 'standard' and 'baritone' tuning arguments to 'gcea' and 'dgbe'.
+# - Added tuning_display mapping for clear UI labels (e.g., "GCEA Ukulele").
+# - Added logic to parse the {strum: ...} ChordPro tag and pass it to the UI.
+
 import os
 import re
 from flask import Flask, render_template, request, redirect, url_for
@@ -14,62 +20,54 @@ os.makedirs('static/banjo_chords', exist_ok=True)
 os.makedirs('static/guitar_chords', exist_ok=True)
 
 def parse_chord_to_filename(chord_name):
-    chord_name = chord_name.strip()
+    root_chord = chord_name.split('/')[0].strip()
     enharmonic_map = {'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'}
-    match = re.match(r'^([A-G][b#]?)(.*)$', chord_name)
+    match = re.match(r'^([A-G][b#]?)(.*)$', root_chord)
+    
     if match:
         root, suffix = match.groups()
         root = root.strip()
         if root in enharmonic_map:
             root = enharmonic_map[root]
-        # Changed to map exactly to the new SVG naming convention (e.g., Cm7.svg)
-        return f"{root}{suffix.strip()}.svg"
-    return f"{chord_name}.svg"
+        safe_suffix = suffix.strip().replace('#', 's')
+        return f"{root}{safe_suffix}.svg"
+        
+    safe_name = root_chord.replace('#', 's')
+    return f"{safe_name}.svg"
 
 def is_chord_line(line):
-    """Detects if a line consists entirely of guitar/ukulele chords."""
     cleaned = line.strip()
     if not cleaned: return False
-    
     cleaned = re.sub(r'\(.*?\)', '', cleaned).strip()
     tokens = cleaned.split()
     if not tokens: return False
-
     chord_pattern = re.compile(r'^[A-G][b#]?(m|min|maj|M|dim|aug|sus)?\d*(/[A-G][b#]?)?$', re.IGNORECASE)
-    
     for token in tokens:
         if not chord_pattern.match(token):
             return False 
     return True
 
 def convert_to_chordpro(text):
-    """Auto-converts standard tabs into inline ChordPro format."""
     lines = text.splitlines()
     out_lines = []
     i = 0
-
     while i < len(lines):
         line = lines[i]
-        
         if "Page " in line and "/" in line:
             i += 1
             continue
-
-        meta_match = re.match(r'^(Tuning|Key|Capo|Difficulty):\s*(.+)', line, re.IGNORECASE)
+        meta_match = re.match(r'^(Tuning|Key|Capo|Difficulty|Strum):\s*(.+)', line, re.IGNORECASE)
         if meta_match:
             key, val = meta_match.groups()
             out_lines.append(f"{{{key}: {val}}}")
             i += 1
             continue
-
         if is_chord_line(line):
             if i + 1 < len(lines) and lines[i+1].strip() and not is_chord_line(lines[i+1]) and not lines[i+1].startswith('['):
                 chord_line = line
                 lyric_line = lines[i+1]
-
                 chords = [(match.start(), match.group()) for match in re.finditer(r'\S+', chord_line)]
                 lyric_chars = list(lyric_line)
-
                 for pos, chord in reversed(chords):
                     chord_str = f"[{chord}]"
                     if pos >= len(lyric_chars):
@@ -77,7 +75,6 @@ def convert_to_chordpro(text):
                         lyric_chars.append(chord_str)
                     else:
                         lyric_chars.insert(pos, chord_str)
-
                 out_lines.append("".join(lyric_chars))
                 i += 2 
                 continue
@@ -86,10 +83,8 @@ def convert_to_chordpro(text):
                 out_lines.append(spaced_chords)
                 i += 1
                 continue
-
         out_lines.append(line)
         i += 1
-
     return "\n".join(out_lines)
 
 @app.route('/')
@@ -98,9 +93,32 @@ def index():
     songs.sort()
     return render_template('index.html', songs=songs, current_song=None)
 
+@app.route('/chart/<instrument>')
+def view_chart(instrument):
+    mapping = {
+        'gcea': 'gcea_chords', 
+        'dgbe': 'dgbe_chords', 
+        'banjo': 'banjo_chords', 
+        'guitar': 'guitar_chords'
+    }
+    tuning_names = {
+        'gcea': 'GCEA Ukulele', 
+        'dgbe': 'DGBE Ukulele', 
+        'banjo': 'Banjo', 
+        'guitar': 'Guitar'
+    }
+    folder = mapping.get(instrument, 'gcea_chords')
+    tuning_display = tuning_names.get(instrument, 'GCEA Ukulele')
+    path = os.path.join('static', folder)
+    
+    chord_files = [f for f in os.listdir(path) if f.endswith('.svg')]
+    chord_files.sort()
+    
+    return render_template('chart.html', instrument=instrument, tuning_display=tuning_display, chords=chord_files, folder=folder)
+
 @app.route('/song/<filename>')
 def view_song(filename):
-    tuning_pref = request.args.get('tuning', 'standard')
+    tuning_pref = request.args.get('tuning', 'gcea')
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
     if not os.path.exists(filepath):
@@ -110,18 +128,19 @@ def view_song(filename):
         lines = f.readlines()
 
     title = filename.replace('.txt', '').replace('_', ' ').title()
+    strum_pattern = None
     tuning = tuning_pref
     unique_chords = set()
     html_lines = []
 
     for line in lines:
         line = line.replace('\r', '').rstrip('\n')
-        
         if line.startswith('{') and line.endswith('}'):
             meta_match = re.match(r'\{([^:]+):\s*(.+)\}', line)
             if meta_match:
                 key, val = meta_match.groups()
                 if key.lower() == 'title': title = val.strip()
+                elif key.lower() == 'strum': strum_pattern = val.strip()
             continue
             
         if not line.strip():
@@ -136,8 +155,7 @@ def view_song(filename):
         chords_in_line = re.findall(r'\[([^\]]+)\]', line)
         for c in chords_in_line:
             clean_c = c.strip()
-            if clean_c: 
-                unique_chords.add(clean_c)
+            if clean_c: unique_chords.add(clean_c)
 
         if re.match(r'^(\s*\[[^\]]+\]\s*)+$', line):
             html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label-standalone">\1</span>', line)
@@ -146,14 +164,18 @@ def view_song(filename):
             html_line = re.sub(r'\[([^\]]+)\]', r'<span class="chord-label-inline" data-chord="\1"></span>', line)
             html_lines.append(f'<div class="lyric-line">{html_line}</div>')
 
-    if tuning == 'baritone':
-        tuning_folder = "dgbe_chords"
-    elif tuning == 'banjo':
-        tuning_folder = "banjo_chords"
-    elif tuning == 'guitar':
-        tuning_folder = "guitar_chords"
-    else:
-        tuning_folder = "gcea_chords"
+    if tuning == 'dgbe': tuning_folder = "dgbe_chords"
+    elif tuning == 'banjo': tuning_folder = "banjo_chords"
+    elif tuning == 'guitar': tuning_folder = "guitar_chords"
+    else: tuning_folder = "gcea_chords"
+
+    tuning_names = {
+        'gcea': 'GCEA Ukulele', 
+        'dgbe': 'DGBE Ukulele', 
+        'banjo': 'Banjo', 
+        'guitar': 'Guitar'
+    }
+    tuning_display = tuning_names.get(tuning, 'GCEA Ukulele')
         
     chord_data = []
     for chord in sorted(unique_chords):
@@ -168,9 +190,11 @@ def view_song(filename):
                            songs=songs, 
                            current_song=filename,
                            title=title, 
+                           strum_pattern=strum_pattern,
                            html_lines=html_lines, 
                            chord_data=chord_data,
-                           tuning=tuning)
+                           tuning=tuning,
+                           tuning_display=tuning_display)
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -181,7 +205,6 @@ def upload_file():
         return redirect(request.url)
     
     raw_text = ""
-    
     if file.filename.endswith('.txt'):
         raw_text = file.read().decode('utf-8', errors='ignore')
     elif file.filename.endswith('.pdf'):
@@ -195,7 +218,6 @@ def upload_file():
         return redirect(request.url)
 
     chordpro_text = convert_to_chordpro(raw_text)
-    
     safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', file.filename.rsplit('.', 1)[0]) + '.txt'
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
     
