@@ -1,8 +1,9 @@
 #!/home/shane/Documents/ukulele_chords/chords_conversion_env/bin/python
-# Version 1.8
+# Version 1.9
 # Changelog:
-# - Added rolodex grouping to view_chart: Chords are now grouped by their root note (A, B, C...) 
-#   before being passed to chart.html.
+# - Added TEMPLATES_AUTO_RELOAD so index.html and chart.html update without restarting Flask.
+# - Added 'Artist' to the ChordPro metadata parser.
+# - Passed 'artist' variable to the view_song template renderer.
 
 import os
 import re
@@ -11,6 +12,7 @@ from pypdf import PdfReader
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'song_sheets'
+app.config['TEMPLATES_AUTO_RELOAD'] = True # This forces Flask to watch your HTML files!
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('static/dgbe_chords', exist_ok=True)
@@ -55,7 +57,8 @@ def convert_to_chordpro(text):
         if "Page " in line and "/" in line:
             i += 1
             continue
-        meta_match = re.match(r'^(Tuning|Key|Capo|Difficulty|Strum):\s*(.+)', line, re.IGNORECASE)
+        # Updated Regex to catch 'Artist'
+        meta_match = re.match(r'^(Tuning|Key|Capo|Difficulty|Strum|Artist):\s*(.+)', line, re.IGNORECASE)
         if meta_match:
             key, val = meta_match.groups()
             out_lines.append(f"{{{key}: {val}}}")
@@ -113,7 +116,6 @@ def view_chart(instrument):
     chord_files = [f for f in os.listdir(path) if f.endswith('.svg')]
     chord_files.sort()
 
-    # GROUP CHORDS BY FIRST LETTER (A, B, C, etc.)
     grouped_chords = {}
     for chord in chord_files:
         root_letter = chord[0].upper()
@@ -121,7 +123,6 @@ def view_chart(instrument):
             grouped_chords[root_letter] = []
         grouped_chords[root_letter].append(chord)
         
-    # Sort dictionary keys alphabetically to ensure correct order
     grouped_chords = {k: grouped_chords[k] for k in sorted(grouped_chords)}
     
     return render_template('chart.html', instrument=instrument, tuning_display=tuning_display, grouped_chords=grouped_chords, folder=folder)
@@ -139,6 +140,7 @@ def view_song(filename):
 
     title = filename.replace('.txt', '').replace('_', ' ').title()
     strum_pattern = None
+    artist = None
     tuning = tuning_pref
     unique_chords = set()
     html_lines = []
@@ -151,6 +153,7 @@ def view_song(filename):
                 key, val = meta_match.groups()
                 if key.lower() == 'title': title = val.strip()
                 elif key.lower() == 'strum': strum_pattern = val.strip()
+                elif key.lower() == 'artist': artist = val.strip() # Extracted artist tag
             continue
             
         if not line.strip():
@@ -200,6 +203,7 @@ def view_song(filename):
                            songs=songs, 
                            current_song=filename,
                            title=title, 
+                           artist=artist,
                            strum_pattern=strum_pattern,
                            html_lines=html_lines, 
                            chord_data=chord_data,

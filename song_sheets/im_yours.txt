@@ -1,8 +1,8 @@
 {title: I'm Yours}
 {artist: Jason Mraz}
+{strum: D U X U  D U X U}
 
 [Intro]
-{strum: D U X U  D U X U}
 [G] [D]
 
 [Verse 1]
